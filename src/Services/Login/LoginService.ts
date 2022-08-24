@@ -1,7 +1,16 @@
-import { api } from "../../Config/api";
-import { LoginBody } from "../../Interfaces/Login/LoginInterface";
-import Service from "../Service";
+import {
+    LoginBody,
+    LoginResponse,
+} from "../../Interfaces/Login/LoginInterface";
 
-export async function LoginService(requestBody: LoginBody) {
-    return Service(api.post<{ bearer: string }>(`/login`, requestBody));
+export async function LoginService(data: LoginBody): Promise<LoginResponse> {
+    const response = await fetch("http://localhost:5000/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify(data),
+    });
+    return response.json();
 }

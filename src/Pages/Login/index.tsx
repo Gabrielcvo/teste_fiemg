@@ -1,112 +1,42 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { api } from "../../Config/api";
-import AuthContext from "../../Context/AuthProvider";
-import { LoginController } from "../../Controllers/Login/LoginController";
-import useAsyncCallback from "../../Hooks/useAsyncCallback";
+import { useNavigate } from "react-router-dom";
 import { LoginBody } from "../../Interfaces/Login/LoginInterface";
 import "./styles.scss";
 
-export function Login() {
-    const { setAuth } = useContext(AuthContext);
+import loginImage from "../../Assets/Images/loginImage.png";
+import { LoginService } from "../../Services/Login/LoginService";
 
+export function Login() {
     const [errorMessage, setErrorMessage] = useState("");
-    const errRef = useRef();
+    const navigate = useNavigate();
 
     const { register, handleSubmit } = useForm({
         shouldUseNativeValidation: true,
     });
 
-    const { execute: executeLogin } = useAsyncCallback(LoginController);
-
-    async function handleLogin(formData: LoginBody) {
-        try {
-            const response = await api.post(
-                "/login",
-                JSON.stringify(formData),
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Access-Control-Allow-Origin": "*",
-                    },
-
-                    withCredentials: true,
-                }
-            );
-            //@ts-ignore
-
-            console.log(JSON.stringify(response?.data));
-            const accessToken = response?.data?.accessToken;
-            setAuth({ ...formData, accessToken });
-        } catch (error) {
-            console.error(error);
-        }
-        // catch (err) {
-        //     if (!err as any) {
-        //         setErrorMessage("No Server Response");
-        //     } else if (err.response?.status === 400) {
-        //         setErrorMessage("Missing Username or Password");
-        //     } else if (err.response?.status === 401) {
-        //         setErrorMessage("Unauthorized");
-        //     } else {
-        //         setErrorMessage("Login Failed");
-        //     }
-        //     errRef.current?.focus();
-        // }
-    }
-
-    async function postData(url = "", data = {}) {
-        // Default options are marked with *
-        const response = await fetch(url, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            body: JSON.stringify(data),
+    function handleLogin(data: LoginBody) {
+        LoginService(data).then((response) => {
+            const accessToken = response.data.token;
+            localStorage.setItem("@token", accessToken);
+            if (response.status === "SUCCESS") {
+                navigate("/user");
+            } else if (response.status === "ERROR") {
+                setErrorMessage(response.message);
+            }
         });
-        return response.json();
     }
-
-    postData("http://localhost:5000/login", {
-        username: "root",
-        password: "123456",
-    }).then((data) => {
-        console.log(data); // JSON data parsed by `data.json()` call
-    });
-
-    // executeLogin({
-    //     ...formData,
-    //     password: formData.password,
-    //     username: formData.username,
-    // }).then((res) => console.log(res));
-
-    // const loadUser = useCallback(async () => {
-    //     const { data } = await api.post(`/login`);
-
-    //     setUser(data);
-    // }, []);
-
-    // useEffect(() => {
-    //     loadUser();
-    // }, [loadUser]);
-
-    // if (user) {
-    //     console.log(user);
-    // }
 
     return (
         <div className="background">
             <div className="container">
-                <div className="img"></div>
+                <div className="img">
+                    <img src={loginImage} alt="Login" />
+                </div>
 
                 <form
-                    onSubmit={handleSubmit((formData) =>
-                        //@ts-ignore
-
-                        handleLogin(formData)
-                    )}
+                    //@ts-ignore
+                    onSubmit={handleSubmit((formData) => handleLogin(formData))}
                     className="formLogin"
                 >
                     <span className="formTitle">Member Login</span>
@@ -119,6 +49,7 @@ export function Login() {
                         placeholder="Username"
                         className="loginInput"
                     />
+
                     <input
                         {...register("password", {
                             required: "Please enter your password",
@@ -131,6 +62,10 @@ export function Login() {
                     <button className="loginButton" type="submit">
                         LOGIN
                     </button>
+
+                    {errorMessage && (
+                        <span style={{ color: "red" }}>{errorMessage}</span>
+                    )}
                 </form>
             </div>
         </div>
